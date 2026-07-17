@@ -1,0 +1,14 @@
+# Test captures and generated outputs — don't commit binary image data
+# or regeneratable CSVs/plots to git. See README for where these live instead.
+data/
+results/
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# OS
+.DS_Store
