@@ -124,6 +124,13 @@ def analyze_astigmatism_by_angle(csv_path):
     """
     df = pd.read_csv(csv_path)
 
+    if "angle" not in df.columns:
+        if "subdir" not in df.columns:
+            raise ValueError(
+                "CSV has neither an 'angle' nor a 'subdir' column. Cannot analyze astigmatism by angle."
+            )
+        df["angle"] = df["subdir"].str.extract(r"(\d+)").astype(int)
+
     print("Astigmatism by angle:")
     print(df[["angle", "astigmatism_ratio"]])
     print(f"\nMean: {df['astigmatism_ratio'].mean():.3f}")
