@@ -1,4 +1,4 @@
-# ALEASAT Payload Functional Test Analysis
+# Image Functional Test Analysis
 
 Focus / sharpness / astigmatism analysis for payload camera functional test
 captures (pre/post-vibe, TVAC thermal cycling).
