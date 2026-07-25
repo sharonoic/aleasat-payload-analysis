@@ -2,8 +2,10 @@ from pathlib import Path
 
 import pandas as pd
 
-from .config import RESULTS_DIR
+from .config import RESULTS_DIR, SIGMA_CALIBRATION
 from .metrics import analyze_payload_image, log_focus_score
+from .validation import apply_sigma_estimate, plot_sigma_estimates
+
 
 
 def analyze_payload_directory(master_dir, output_csv=None, per_subdir=False):
@@ -31,7 +33,7 @@ def analyze_payload_directory(master_dir, output_csv=None, per_subdir=False):
     dataframes = {}
 
     for subdir in subdirs:
-        images = sorted(subdir.glob("*.jpg"))
+        images = sorted(subdir.glob("*.jpg")) + sorted(subdir.glob("*.png"))
         if not images:
             print(f"  No images in {subdir.name}")
             continue
@@ -86,7 +88,7 @@ def compute_focus_scores(master_dir, output_csv=None):
 
     results = []
     for subdir in subdirs:
-        images = sorted(subdir.glob("*.jpg"))
+        images = sorted(subdir.glob("*.jpg")) + sorted(subdir.glob("*.png"))
         if not images:
             print(f"No images in {subdir.name}")
             continue
@@ -142,3 +144,64 @@ def analyze_astigmatism_by_angle(csv_path):
         print("-> Low variance: likely optical astigmatism")
 
     return df
+
+def estimate_sigma_for_run(csv_path, metric="focus_metric", calibration=None,
+                            group_col="subdir", output_csv=None, plot=True):
+    """
+    Apply the sigma calibration curve backwards to a real (unlabeled) metrics
+    CSV -- converting each row's measured focus metric into an estimated
+    blur sigma, then optionally plotting it grouped by subdir.
+ 
+    This runs the calibration "in reverse": fit_focus_curve() in
+    validation.py is fit on a known-sigma synthetic series; this function
+    applies that fitted curve to real captures where the true sigma is
+    unknown, to estimate what it likely was.
+ 
+    Args:
+        csv_path: path to a metrics CSV produced by analyze_payload_directory
+                  or compute_focus_scores (must contain the `metric` column)
+        metric: which column to convert -- 'focus_metric' or 'log_focus_score'
+        calibration: optional override dict with A/k/C. Defaults to
+                     config.SIGMA_CALIBRATION[metric]
+        group_col: column to group/average by when plotting (default 'subdir')
+        output_csv: where to save the result (default: csv_path with
+                    '_with_sigma' appended before the extension)
+        plot: if True, also calls plot_sigma_estimates on the result
+ 
+    Returns:
+        DataFrame with an added 'estimated_sigma' column
+    """
+    df = pd.read_csv(csv_path)
+ 
+    if metric not in df.columns:
+        raise ValueError(
+            f"Column '{metric}' not found in {csv_path}. Available columns: {list(df.columns)}"
+        )
+ 
+    calibration = calibration or SIGMA_CALIBRATION.get(metric)
+    if calibration is None:
+        raise ValueError(
+            f"No calibration available for '{metric}'. Pass one explicitly via "
+            f"the calibration= argument, or add it to config.SIGMA_CALIBRATION."
+        )
+ 
+    df = apply_sigma_estimate(df, calibration, metric)
+ 
+    csv_path = Path(csv_path)
+    if output_csv is None:
+        output_csv = csv_path.with_name(csv_path.stem + "_with_sigma" + csv_path.suffix)
+    df.to_csv(output_csv, index=False)
+    print(f"Saved sigma estimates to {output_csv}")
+ 
+    n_unresolved = df["estimated_sigma"].isna().sum()
+    if n_unresolved:
+        print(f"  Note: {n_unresolved}/{len(df)} rows blurred beyond calibration range (estimated_sigma = NaN)")
+ 
+    if plot and group_col in df.columns:
+        plot_sigma_estimates(
+            df, group_col=group_col, sigma_col="estimated_sigma",
+            title=f"Estimated blur sigma ({metric}) -- {csv_path.stem}",
+        )
+ 
+    return df
+ 

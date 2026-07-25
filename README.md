@@ -32,11 +32,11 @@ are gitignored — binary image data bloats git history permanently).
 
 ```
 data/
-├── 260609_pre_vibe_func_test/
-│   ├── angle-0/*.jpg
-│   └── angle-90/*.jpg
-└── New TRP/
-    ├── CYCLE1_MIN_OP_20260623-1347/*.jpg
+├──New TRP/
+    ├── CYCLE1_MIN_OP_20260623-1347/*.jpg  
+    └── ...
+    └──260609_pre_vibe_func_test/
+        └── angle-*/*.jpg
     └── ...
 ```
 
