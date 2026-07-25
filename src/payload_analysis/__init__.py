@@ -14,6 +14,7 @@ from .validation import (
     estimate_sigma,
     apply_sigma_estimate,
     plot_sigma_estimates,
+    focus_score_to_blur_sigma,
 )
 
 from .plotting import (
@@ -46,4 +47,5 @@ __all__ = [
     "RESULTS_DIR",
     "TEMP_MAP",
     "SIGMA_CALIBRATION",
+    "focus_score_to_blur_sigma"
 ]

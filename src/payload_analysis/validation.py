@@ -280,6 +280,37 @@ def plot_sigma_estimates(df, group_col=None, sigma_col="estimated_sigma", title=
  
     plt.tight_layout()
     plt.show()
+
+ 
+def focus_score_to_blur_sigma(calibration_df, measured_value, column="focus_score", fit=None):
+    """
+    Translate a measured focus score into an estimated Gaussian blur sigma,
+    by generating the calibration formula (fit_focus_curve) and then
+    inverting it (estimate_sigma) in one call.
+ 
+    Args:
+        calibration_df: DataFrame with known-sigma calibration data (from
+                         validate_focus_metrics on a synthetic blur series) --
+                         must contain 'sigma' and the `column` to fit against.
+                         Ignored if `fit` is already provided.
+        measured_value: real, unlabeled focus score value(s) to translate
+                         (scalar, list, or array)
+        column: which metric column to fit/translate -- e.g. 'focus_score',
+                'focus_metric', or 'log_focus_score'
+        fit: optional pre-computed fit dict (skips re-fitting if you're
+             calling this repeatedly with the same calibration data)
+ 
+    Returns:
+        (estimated_sigma, fit) -- the translated blur sigma value(s), and
+        the fit dict used (so you can inspect A/k/C/r_squared or reuse it
+        on the next call without refitting)
+    """
+    if fit is None:
+        fit = fit_focus_curve(calibration_df, column=column)
+ 
+    estimated_sigma = estimate_sigma(measured_value, fit)
+ 
+    return estimated_sigma, fit
  
 
 def _plot_validation(df):
